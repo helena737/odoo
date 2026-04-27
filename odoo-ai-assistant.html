@@ -301,7 +301,7 @@ const PROXY_URL = 'https://odooai-proxy.onrender.com';
 const A = {
   odoo: { url:'', db:'', email:'', apiKey:'', connected:false, uid:null },
   msgs: [], csv: null, mode: 'chat', loading: false,
-  history: [], lastDoc: '', lastManual: '', lastWebpage: '',
+  history: [], lastDoc: '', lastManual: '', lastWebpage: '', odooDocs: null,
   ctx: () => ({
     client: document.getElementById('clientName').value || '',
     sector: document.getElementById('clientSector').value || '',
@@ -344,6 +344,11 @@ async function connect() {
     const d = await r.json();
     if (!d.uid) throw new Error(d.error || 'Credenciales incorrectas o BD no encontrada');
     A.odoo.uid = d.uid; A.odoo.connected = true;
+    // Cargar documentación técnica
+    try {
+      const docsR = await fetch(`${PROXY_URL}/docs`);
+      A.odooDocs = await docsR.json();
+    } catch(e) { console.log('Docs no disponibles'); }
     setConn('on', db);
     const ctx = A.ctx();
     sysMsg(`✅ **Conectado** a ${url}\nBD: **${db}** · Odoo ${ctx.ver}${ctx.client?' · '+ctx.client:''}\n\nListo. Puedo consultar datos, guiarte en Studio, generar manuales y documentación. ¿Empezamos?`);
@@ -405,9 +410,15 @@ EJEMPLOS:
 
 Para Studio, configuración, manuales o debug → responde en texto normal.
 Responde siempre en español. ⚠️ en riesgos.
+${A.odooDocs ? `
+DOCUMENTACIÓN TÉCNICA ODOO (usa esto para generar código y respuestas precisas):
+MODELOS DISPONIBLES: ${Object.keys(A.odooDocs.models).join(', ')}
+XMLRPC: ${JSON.stringify(A.odooDocs.xmlrpc)}
+DOMINIOS: ${JSON.stringify(A.odooDocs.domains)}
+STUDIO: ${JSON.stringify(A.odooDocs.studio)}
+CAMPOS POR MODELO: ${JSON.stringify(Object.fromEntries(Object.entries(A.odooDocs.models).map(([k,v])=>[k,v.fields])))}
+` : ''}
 ${A.csv?'CSV CARGADO: '+A.csv.length+' filas. Columnas: '+Object.keys(A.csv[0]||{}).join(', '):''}`;
-
-  const sys = webSys;
 
   const r = await fetch(`${PROXY_URL}/claude`, {
     method: 'POST',
