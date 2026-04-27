@@ -1,0 +1,529 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Odoo AI Assistant v3 — DevStudios</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600&family=Bricolage+Grotesque:wght@400;500;600;700;800&display=swap');
+:root {
+  --bg:#f5f5fa;--s1:#ffffff;--s2:#f0f0f8;--s3:#e8e8f5;--bd:#d0d0e0;--bd2:#c0c0d8;
+  --p:#8b7fff;--p2:#ff7eb3;--p3:#7fffd4;--p4:#ffd07e;--p5:#7eb3ff;
+  --t:#1a1a2e;--td:#7777aa;--te:#5555aa;
+  --ok:#7fffd4;--err:#ff5577;--warn:#ffd07e;
+  --mono:'JetBrains Mono',monospace;--sans:'Bricolage Grotesque',sans-serif;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:var(--bg);color:var(--t);font-family:var(--sans);height:100vh;display:flex;flex-direction:column;overflow:hidden;}
+body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellipse 80% 50% at 50% -20%,rgba(139,127,255,0.07),transparent);pointer-events:none;z-index:0;}
+
+header{display:flex;align-items:center;justify-content:space-between;padding:10px 18px;border-bottom:1px solid var(--bd);background:rgba(7,7,14,0.98);position:relative;z-index:20;flex-shrink:0;}
+.logo{display:flex;align-items:center;gap:10px;}
+.logo-mark{width:30px;height:30px;background:linear-gradient(135deg,var(--p),var(--p2));border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:15px;}
+.logo-name{font-size:15px;font-weight:800;letter-spacing:-0.5px;}
+.logo-name em{color:var(--p);font-style:normal;}
+.logo-v{font-family:var(--mono);font-size:9px;background:rgba(139,127,255,0.12);color:var(--p);padding:2px 7px;border-radius:4px;border:1px solid rgba(139,127,255,0.25);margin-left:6px;}
+.hdr-right{display:flex;align-items:center;gap:8px;}
+.conn-badge{display:flex;align-items:center;gap:6px;background:var(--s2);border:1px solid var(--bd);padding:5px 12px;border-radius:20px;}
+.cdot{width:7px;height:7px;border-radius:50%;background:var(--td);transition:all 0.3s;}
+.cdot.on{background:var(--ok);box-shadow:0 0 8px var(--ok);}
+.cdot.err{background:var(--err);box-shadow:0 0 8px var(--err);}
+.ctxt{font-family:var(--mono);font-size:11px;color:var(--td);}
+.hdr-btn{background:var(--s2);border:1px solid var(--bd);color:var(--td);padding:5px 12px;border-radius:6px;font-family:var(--mono);font-size:10px;cursor:pointer;transition:all 0.2s;}
+.hdr-btn:hover{border-color:var(--p);color:var(--t);}
+
+.wrap{display:flex;flex:1;overflow:hidden;position:relative;z-index:1;}
+
+/* SIDEBAR */
+.sidebar{width:260px;border-right:1px solid var(--bd);background:var(--s1);display:flex;flex-direction:column;overflow:hidden;flex-shrink:0;}
+.sidebar-tabs{display:flex;border-bottom:1px solid var(--bd);}
+.stab{flex:1;padding:9px 4px;text-align:center;font-size:10px;font-family:var(--mono);color:var(--td);cursor:pointer;border-bottom:2px solid transparent;transition:all 0.2s;letter-spacing:0.5px;}
+.stab.active{color:var(--p);border-bottom-color:var(--p);}
+.stab:hover:not(.active){color:var(--t);}
+.sp{display:none;flex-direction:column;overflow-y:auto;flex:1;padding:14px;}
+.sp.active{display:flex;}
+.sp::-webkit-scrollbar{width:3px;}
+.sp::-webkit-scrollbar-thumb{background:var(--bd);}
+
+.slabel{font-family:var(--mono);font-size:9px;color:var(--td);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:7px;margin-top:14px;padding-top:12px;border-top:1px solid var(--bd);}
+.slabel:first-child{margin-top:0;border-top:none;padding-top:0;}
+.sinput{margin-bottom:9px;}
+.sinput label{font-size:10px;color:var(--td);display:block;margin-bottom:3px;font-family:var(--mono);}
+.sinput input,.sinput select,.sinput textarea{width:100%;background:var(--bg);border:1px solid var(--bd);color:var(--t);padding:8px 10px;border-radius:6px;font-family:var(--mono);font-size:12px;outline:none;transition:border-color 0.2s;}
+.sinput input:focus,.sinput select:focus,.sinput textarea:focus{border-color:var(--p);}
+.sinput input::placeholder{color:#aaaacc;}
+.sinput select option{background:var(--s2);}
+.sinput textarea{resize:none;height:60px;line-height:1.5;}
+
+.sbtn{width:100%;padding:9px;border-radius:6px;border:none;cursor:pointer;font-family:var(--sans);font-size:13px;font-weight:700;transition:all 0.2s;margin-bottom:6px;}
+.sbtn-p{background:linear-gradient(135deg,var(--p),#aa8fff);color:#fff;}
+.sbtn-p:hover{opacity:0.85;transform:translateY(-1px);}
+.sbtn-g{background:var(--s2);color:var(--td);border:1px solid var(--bd);}
+.sbtn-g:hover{border-color:var(--p);color:var(--t);}
+.sbtn-w{background:rgba(255,208,126,0.08);color:var(--warn);border:1px solid rgba(255,208,126,0.2);}
+.sbtn-w:hover{background:rgba(255,208,126,0.15);}
+.sbtn-ok{background:rgba(127,255,212,0.08);color:var(--ok);border:1px solid rgba(127,255,212,0.2);}
+.sbtn-ok:hover{background:rgba(127,255,212,0.15);}
+
+.qabtn{width:100%;text-align:left;background:transparent;border:1px solid var(--bd);color:var(--td);padding:8px 10px;border-radius:6px;font-family:var(--mono);font-size:11px;cursor:pointer;margin-bottom:5px;transition:all 0.2s;display:flex;gap:7px;line-height:1.4;}
+.qabtn:hover{border-color:var(--p);color:var(--t);background:rgba(139,127,255,0.04);}
+.qabtn .qcat{font-size:9px;color:var(--p);display:block;}
+
+.notice{background:rgba(255,208,126,0.05);border:1px solid rgba(255,208,126,0.15);border-radius:6px;padding:9px 11px;font-size:10px;font-family:var(--mono);color:var(--warn);line-height:1.5;margin-bottom:10px;}
+
+/* MAIN */
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden;}
+.topbar{display:flex;gap:5px;padding:8px 14px;border-bottom:1px solid var(--bd);background:var(--s1);flex-shrink:0;flex-wrap:wrap;}
+.tbtn{padding:5px 13px;border-radius:6px;border:1px solid var(--bd);background:transparent;color:var(--td);font-family:var(--mono);font-size:10px;cursor:pointer;transition:all 0.2s;}
+.tbtn.active{background:rgba(139,127,255,0.1);border-color:var(--p);color:var(--p);}
+.tbtn:hover:not(.active){color:var(--t);}
+
+.chat{flex:1;overflow-y:auto;padding:18px;scroll-behavior:smooth;}
+.chat::-webkit-scrollbar{width:3px;}
+.chat::-webkit-scrollbar-thumb{background:var(--bd);}
+
+.welcome{text-align:center;padding:30px 20px;}
+.wt{font-size:26px;font-weight:800;letter-spacing:-1px;background:linear-gradient(135deg,var(--p),var(--p2),var(--p3));-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
+.ws2{font-size:12px;color:var(--td);font-family:var(--mono);margin:5px 0 22px;}
+.chips{display:grid;grid-template-columns:1fr 1fr;gap:6px;max-width:520px;margin:0 auto;}
+.chip{background:var(--s2);border:1px solid var(--bd);padding:8px 11px;border-radius:8px;font-size:11px;color:var(--td);cursor:pointer;font-family:var(--mono);transition:all 0.2s;text-align:left;}
+.chip:hover{border-color:var(--p);color:var(--t);}
+.chip .ccat{font-size:9px;color:var(--p);display:block;margin-bottom:2px;}
+
+.msg{display:flex;gap:10px;margin-bottom:15px;animation:fi 0.2s ease;}
+@keyframes fi{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:translateY(0)}}
+.mav{width:28px;height:28px;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0;margin-top:2px;}
+.mav.user{background:linear-gradient(135deg,var(--p2),#ff9f6a);}
+.mav.assistant{background:linear-gradient(135deg,var(--p),#aa8fff);}
+.mc{flex:1;min-width:0;}
+.mr{font-size:9px;font-family:var(--mono);color:var(--td);margin-bottom:3px;letter-spacing:1px;text-transform:uppercase;}
+.mb{background:var(--s1);border:1px solid var(--bd);border-radius:0 9px 9px 9px;padding:11px 13px;font-size:13px;line-height:1.7;color:var(--t);word-break:break-word;}
+.msg.user .mb{background:rgba(139,127,255,0.07);border-color:rgba(139,127,255,0.2);border-radius:9px 0 9px 9px;}
+.mb strong{color:var(--p3);font-weight:600;}
+.mb code{background:var(--bg);border:1px solid var(--bd);padding:1px 6px;border-radius:3px;font-family:var(--mono);font-size:11px;color:var(--p3);}
+.mb pre{background:var(--bg);border:1px solid var(--bd);border-radius:8px;padding:12px;overflow-x:auto;margin:8px 0;font-family:var(--mono);font-size:11px;color:var(--p3);line-height:1.5;white-space:pre;}
+
+.typing{display:flex;gap:4px;padding:8px 12px;align-items:center;}
+.td2{width:5px;height:5px;border-radius:50%;background:var(--p);animation:b 1.2s infinite;}
+.td2:nth-child(2){animation-delay:.2s}.td2:nth-child(3){animation-delay:.4s}
+@keyframes b{0%,60%,100%{transform:translateY(0);opacity:.3}30%{transform:translateY(-5px);opacity:1}}
+
+.iarea{padding:12px 16px;border-top:1px solid var(--bd);background:rgba(7,7,14,0.98);flex-shrink:0;}
+.irow{display:flex;gap:8px;align-items:flex-end;}
+#inp{flex:1;background:var(--s1);border:1px solid var(--bd);color:var(--t);padding:10px 13px;border-radius:9px;font-family:var(--sans);font-size:14px;outline:none;resize:none;min-height:42px;max-height:110px;transition:border-color 0.2s;line-height:1.5;}
+#inp:focus{border-color:var(--p);}
+#inp::placeholder{color:#aaaacc;}
+.sendbtn{width:42px;height:42px;background:linear-gradient(135deg,var(--p),#aa8fff);border:none;border-radius:9px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:18px;transition:all 0.2s;flex-shrink:0;}
+.sendbtn:hover{transform:scale(1.05);}
+.sendbtn:disabled{opacity:.3;cursor:not-allowed;transform:none;}
+.ihint{font-family:var(--mono);font-size:10px;color:#1a1a38;margin-top:5px;text-align:center;}
+
+/* History */
+.hitem{background:var(--s2);border:1px solid var(--bd);border-radius:7px;padding:9px 10px;cursor:pointer;transition:all 0.2s;margin-bottom:5px;}
+.hitem:hover{border-color:var(--p);}
+.hi-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:3px;}
+.hi-type{font-size:9px;font-family:var(--mono);padding:2px 6px;border-radius:3px;}
+.hi-type.query{background:rgba(139,127,255,0.1);color:var(--p);}
+.hi-type.studio{background:rgba(127,255,212,0.1);color:var(--p3);}
+.hi-type.config{background:rgba(255,208,126,0.1);color:var(--warn);}
+.hi-type.import{background:rgba(126,179,255,0.1);color:var(--p5);}
+.hi-time{font-size:9px;font-family:var(--mono);color:var(--td);}
+.hi-text{font-size:11px;color:var(--te);font-family:var(--mono);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.hi-result{font-size:10px;color:var(--td);margin-top:2px;}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <div class="logo-mark">⬡</div>
+    <div class="logo-name">Odoo<em>AI</em></div>
+    <div class="logo-v">v3 · DevStudios</div>
+  </div>
+  <div class="hdr-right">
+    <div class="conn-badge">
+      <div class="cdot" id="cdot"></div>
+      <span class="ctxt" id="ctxt">Sin conectar</span>
+    </div>
+    <button class="hdr-btn" onclick="exportHistory()">↓ Exportar historial</button>
+    <button class="hdr-btn" onclick="clearAll()">↺ Reset</button>
+  </div>
+</header>
+
+<div class="wrap">
+  <div class="sidebar">
+    <div class="sidebar-tabs">
+      <div class="stab active" onclick="switchTab('connect')">⚡ Conex.</div>
+      <div class="stab" onclick="switchTab('actions')">🎯 Acc.</div>
+      <div class="stab" onclick="switchTab('data')">📂 Datos</div>
+      <div class="stab" onclick="switchTab('history')">🕓 Hist.</div>
+    </div>
+
+    <!-- CONNECT -->
+    <div class="sp active" id="sp-connect">
+      <div class="slabel">Conexión Odoo</div>
+      <div class="sinput"><label>URL</label><input id="odooUrl" value="https://devstudios-1.odoo.com"></div>
+      <div class="sinput"><label>Base de datos</label><input id="odooDB" value="devstudios-1"></div>
+      <div class="sinput"><label>Email</label><input id="odooEmail" value="devstudio.ceo@gmail.com"></div>
+      <div class="sinput"><label>API Key</label><input type="password" id="odooApiKey" placeholder="Pega aquí tu API Key"></div>
+      <button class="sbtn sbtn-p" onclick="connect()">⚡ Conectar</button>
+      <button class="sbtn sbtn-g" onclick="clearAll()">↺ Limpiar</button>
+
+      <div class="slabel">Contexto del proyecto</div>
+      <div class="sinput"><label>Cliente</label><input id="clientName" placeholder="Nombre del cliente"></div>
+      <div class="sinput"><label>Sector</label><input id="clientSector" placeholder="Ej: Distribución, Servicios..."></div>
+      <div class="sinput"><label>Versión Odoo</label>
+        <select id="odooVer"><option value="19">Odoo 19</option><option value="18">Odoo 18</option><option value="17">Odoo 17</option></select>
+      </div>
+      <div class="sinput"><label>Fase</label>
+        <select id="projPhase">
+          <option value="config">Configuración inicial</option>
+          <option value="data">Carga de datos</option>
+          <option value="studio">Personalizaciones Studio</option>
+          <option value="golive">Pre Go-Live</option>
+          <option value="support">Soporte post Go-Live</option>
+        </select>
+      </div>
+      <div class="sinput"><label>Notas</label><textarea id="projNotes" placeholder="Módulos, requisitos especiales..."></textarea></div>
+    </div>
+
+    <!-- ACTIONS -->
+    <div class="sp" id="sp-actions">
+      <div class="slabel">Datos</div>
+      <button class="qabtn" onclick="qa('Lista los últimos 20 contactos con nombre, email y ciudad')"><span>👥</span><span>Últimos contactos<span class="qcat">res.partner</span></span></button>
+      <button class="qabtn" onclick="qa('Muestra oportunidades CRM abiertas con etapa y valor esperado')"><span>💼</span><span>Oportunidades CRM<span class="qcat">crm.lead</span></span></button>
+      <button class="qabtn" onclick="qa('Pedidos de venta del último mes con total y estado')"><span>🛒</span><span>Pedidos recientes<span class="qcat">sale.order</span></span></button>
+      <button class="qabtn" onclick="qa('Facturas pendientes de pago con cliente e importe')"><span>💰</span><span>Facturas pendientes<span class="qcat">account.move</span></span></button>
+      <button class="qabtn" onclick="qa('Productos con stock disponible menor a 5 unidades')"><span>📦</span><span>Stock bajo<span class="qcat">product.template</span></span></button>
+      <button class="qabtn" onclick="qa('Usuarios activos del sistema con email y permisos')"><span>👤</span><span>Usuarios activos<span class="qcat">res.users</span></span></button>
+
+      <div class="slabel">Studio</div>
+      <button class="qabtn" onclick="qa('Cómo creo un campo CIF/NIF personalizado en contactos con Odoo Studio, dame el paso a paso exacto')"><span>➕</span><span>Crear campo custom<span class="qcat">Studio · Campos</span></span></button>
+      <button class="qabtn" onclick="qa('Cómo creo una automatización en Studio para notificar cuando una oportunidad supere 10.000€')"><span>⚡</span><span>Nueva automatización<span class="qcat">Studio · Automation</span></span></button>
+      <button class="qabtn" onclick="qa('Cómo modifico la vista formulario de contactos en Studio para añadir y reorganizar campos')"><span>🖼️</span><span>Modificar vista<span class="qcat">Studio · Views</span></span></button>
+      <button class="qabtn" onclick="qa('Cómo creo un modelo nuevo en Studio para gestionar proyectos de implementación con campos de cliente, fase y presupuesto')"><span>🗂️</span><span>Nuevo modelo<span class="qcat">Studio · Models</span></span></button>
+      <button class="qabtn" onclick="qa('Cómo configuro un webhook saliente en Studio al confirmar un pedido de venta')"><span>🔗</span><span>Webhook saliente<span class="qcat">Studio · Webhooks</span></span></button>
+
+      <div class="slabel">Configuración</div>
+      <button class="qabtn" onclick="qa('Dame el checklist completo de configuración inicial para una nueva base de datos Odoo')"><span>✅</span><span>Checklist inicial<span class="qcat">Config · General</span></span></button>
+      <button class="qabtn" onclick="qa('Cómo configuro permisos para que los comerciales solo vean sus propias oportunidades')"><span>🔐</span><span>Permisos y roles<span class="qcat">Config · Users</span></span></button>
+      <button class="qabtn" onclick="qa('Configuración completa de la localización española: Verifactu 2.0, SII e IRPF paso a paso')"><span>🇪🇸</span><span>Localización española<span class="qcat">Config · Finance</span></span></button>
+      <button class="qabtn" onclick="qa('Cómo instalo y configuro el email saliente con Gmail en Odoo')"><span>📧</span><span>Email SMTP<span class="qcat">Config · Email</span></span></button>
+
+      <div class="slabel">Manuales</div>
+      <button class="qabtn" onclick="qa('Genera un manual de uso completo del CRM de Odoo para el perfil comercial, con pasos numerados y casos de uso reales')"><span>📘</span><span>Manual CRM comercial<span class="qcat">Manual · CRM</span></span></button>
+      <button class="qabtn" onclick="qa('Genera un manual de facturación en Odoo para el perfil contable, paso a paso')"><span>📘</span><span>Manual facturación<span class="qcat">Manual · Finance</span></span></button>
+      <button class="qabtn" onclick="qa('Genera un manual de gestión de inventario en Odoo para el perfil de almacén')"><span>📘</span><span>Manual inventario<span class="qcat">Manual · Stock</span></span></button>
+
+      <div class="slabel">Documentación cliente</div>
+      <button class="qabtn" onclick="genDoc('config_report')"><span>📄</span><span>Informe de configuración<span class="qcat">Doc · Cliente</span></span></button>
+      <button class="qabtn" onclick="genDoc('golive_checklist')"><span>✅</span><span>Checklist Go-Live<span class="qcat">Doc · Cliente</span></span></button>
+      <button class="qabtn" onclick="genDoc('handover')"><span>📋</span><span>Documento de entrega<span class="qcat">Doc · Cliente</span></span></button>
+    </div>
+
+    <!-- DATA -->
+    <div class="sp" id="sp-data">
+      <div class="notice">⚠️ Prueba siempre en entorno de test antes de importar en producción.</div>
+      <input type="file" id="fileInput" accept=".csv" onchange="loadCSV(event)" style="display:none">
+      <div style="border:1.5px dashed var(--bd);border-radius:8px;padding:18px;text-align:center;cursor:pointer;margin-bottom:10px;transition:all 0.2s;" onclick="document.getElementById('fileInput').click()" onmouseover="this.style.borderColor='var(--p)'" onmouseout="this.style.borderColor='var(--bd)'">
+        <div style="font-size:24px;margin-bottom:6px;">📂</div>
+        <p style="font-size:11px;color:var(--td);font-family:var(--mono);">Haz clic para cargar CSV</p>
+      </div>
+      <div class="sinput"><label>Modelo destino</label>
+        <select id="targetModel">
+          <option value="res.partner">Contactos (res.partner)</option>
+          <option value="product.template">Productos (product.template)</option>
+          <option value="crm.lead">Oportunidades (crm.lead)</option>
+          <option value="account.move">Facturas (account.move)</option>
+          <option value="project.task">Tareas (project.task)</option>
+          <option value="hr.employee">Empleados (hr.employee)</option>
+        </select>
+      </div>
+      <button class="sbtn sbtn-g" onclick="analyzeCSV()">🔍 Analizar y mapear campos</button>
+      <button class="sbtn sbtn-w" onclick="importCSV()">⬆️ Generar código importación</button>
+      <div class="slabel">Log</div>
+      <div id="importLog" style="font-family:var(--mono);font-size:10px;color:var(--td);line-height:1.8;">Sin importaciones.</div>
+    </div>
+
+    <!-- HISTORY -->
+    <div class="sp" id="sp-history">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+        <span style="font-size:11px;font-family:var(--mono);color:var(--te);" id="histCount">0 operaciones</span>
+        <button style="background:var(--s2);border:1px solid var(--bd);color:var(--td);padding:4px 10px;border-radius:5px;font-size:10px;cursor:pointer;font-family:var(--mono);" onclick="clearHistory()">Limpiar</button>
+      </div>
+      <div id="historyList"><div style="font-family:var(--mono);font-size:10px;color:var(--td);text-align:center;padding:20px;">Sin operaciones aún.</div></div>
+    </div>
+  </div>
+
+  <!-- MAIN -->
+  <div class="main">
+    <div class="topbar">
+      <button class="tbtn active" onclick="setMode('chat',this)">💬 Chat</button>
+      <button class="tbtn" onclick="setMode('studio',this)">🎨 Studio</button>
+      <button class="tbtn" onclick="setMode('config',this)">⚙️ Config</button>
+      <button class="tbtn" onclick="setMode('debug',this)">🐛 Debug</button>
+      <button class="tbtn" onclick="setMode('manual',this)">📘 Manual</button>
+      <button class="tbtn" onclick="setMode('doc',this)">📄 Doc</button>
+    </div>
+
+    <div class="chat" id="chat">
+      <div class="welcome" id="ws">
+        <div class="wt">Odoo AI Assistant</div>
+        <div class="ws2">DevStudios · Datos · Studio · Config · Manuales · Docs</div>
+        <div class="chips">
+          <div class="chip" onclick="qa('Lista los contactos sin email de la base de datos')"><span class="ccat">DATOS</span>Contactos sin email</div>
+          <div class="chip" onclick="qa('Cómo creo un campo CIF personalizado en contactos con Studio, paso a paso')"><span class="ccat">STUDIO</span>Campo CIF en Studio</div>
+          <div class="chip" onclick="qa('Dame el checklist completo de configuración inicial de Odoo')"><span class="ccat">CONFIG</span>Checklist inicial</div>
+          <div class="chip" onclick="qa('Genera un manual de uso del CRM para comerciales, formato paso a paso')"><span class="ccat">MANUAL</span>Manual CRM</div>
+          <div class="chip" onclick="qa('Genera el informe de configuración del proyecto para entregar al cliente')"><span class="ccat">DOC</span>Informe configuración</div>
+          <div class="chip" onclick="qa('Mis facturas no se pueden confirmar, diagnostica el problema')"><span class="ccat">DEBUG</span>Debug facturas</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="iarea">
+      <div class="irow">
+        <textarea id="inp" placeholder="Pregunta sobre datos, Studio, configuración, manuales o errores de Odoo..." rows="1" onkeydown="hk(event)" oninput="ar(this)"></textarea>
+        <button class="sendbtn" id="sbtn" onclick="send()">➤</button>
+      </div>
+      <div class="ihint">Enter para enviar · Shift+Enter nueva línea</div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ─── ANTHROPIC API KEY ───────────────────────────────────────────────────────
+// Reemplaza con tu API Key de Anthropic (claude.ai)
+const PROXY_URL = 'https://odooai-proxy.onrender.com';
+// ────────────────────────────────────────────────────────────────────────────
+
+const A = {
+  odoo: { url:'', db:'', email:'', apiKey:'', connected:false, uid:null },
+  msgs: [], csv: null, mode: 'chat', loading: false,
+  history: [], lastDoc: '', lastManual: '',
+  ctx: () => ({
+    client: document.getElementById('clientName').value || '',
+    sector: document.getElementById('clientSector').value || '',
+    ver: document.getElementById('odooVer').value || '19',
+    phase: document.getElementById('projPhase').value || 'config',
+    notes: document.getElementById('projNotes').value || ''
+  })
+};
+
+// ── TABS ──────────────────────────────────────────────────────────────────────
+function switchTab(id) {
+  document.querySelectorAll('.stab').forEach((t,i) => {
+    t.classList.toggle('active', ['connect','actions','data','history'][i] === id);
+  });
+  document.querySelectorAll('.sp').forEach(p => p.classList.remove('active'));
+  document.getElementById('sp-' + id).classList.add('active');
+}
+
+// ── MODE ──────────────────────────────────────────────────────────────────────
+function setMode(m, el) {
+  A.mode = m;
+  document.querySelectorAll('.tbtn').forEach(b => b.classList.remove('active'));
+  el.classList.add('active');
+}
+
+// ── ODOO CONNECT ──────────────────────────────────────────────────────────────
+async function connect() {
+  const url = document.getElementById('odooUrl').value.trim();
+  const db  = document.getElementById('odooDB').value.trim();
+  const email = document.getElementById('odooEmail').value.trim();
+  const apiKey = document.getElementById('odooApiKey').value.trim();
+  if (!apiKey) { sysMsg('⚠️ Pega tu **API Key de Odoo** en el campo correspondiente.'); return; }
+  A.odoo = { url, db, email, apiKey, connected: false, uid: null };
+  setConn('', 'Conectando...');
+  try {
+    const r = await fetch(`${PROXY_URL}/odoo`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ url, endpoint:'/web/session/authenticate', body:{ jsonrpc:'2.0', method:'call', params:{ db, login:email, password:apiKey } } })
+    });
+    const d = await r.json();
+    if (!d.result?.uid) throw new Error('Credenciales incorrectas o BD no encontrada');
+    A.odoo.uid = d.result.uid; A.odoo.connected = true;
+    setConn('on', db);
+    const ctx = A.ctx();
+    sysMsg(`✅ **Conectado** a ${url}\nBD: **${db}** · Odoo ${ctx.ver}${ctx.client?' · '+ctx.client:''}\n\nListo. Puedo consultar datos, guiarte en Studio, generar manuales y documentación. ¿Empezamos?`);
+    addHist('config', 'Conexión establecida', url + ' · ' + db, 'ok');
+  } catch(e) {
+    setConn('err', 'Error');
+    sysMsg(`❌ **Error de conexión**: ${e.message}\n\n• Verifica que la URL incluye https://\n• La BD es correcta\n• La API Key está bien pegada\n• En Odoo.com: Ajustes → Usuarios → tu perfil → API Keys`);
+  }
+}
+
+async function odooCall(model, method, args, kwargs) {
+  if (!A.odoo.connected) return { error: 'No conectado a Odoo' };
+  try {
+    const r = await fetch(`${PROXY_URL}/odoo`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ url: A.odoo.url, endpoint:'/web/dataset/call_kw', body:{ jsonrpc:'2.0', method:'call', params:{ model, method, args, kwargs:{ ...kwargs, context:{} } } } })
+    });
+    const d = await r.json();
+    if (d.error) throw new Error(d.error.data?.message || d.error.message);
+    return { success: true, data: d.result };
+  } catch(e) { return { error: e.message }; }
+}
+
+function setConn(type, text) {
+  document.getElementById('cdot').className = 'cdot' + (type==='on'?' on':type==='err'?' err':'');
+  document.getElementById('ctxt').textContent = text;
+}
+
+// ── CLAUDE ────────────────────────────────────────────────────────────────────
+async function askClaude(userMsg) {
+  const ctx = A.ctx();
+  const phases = { config:'Configuración inicial', data:'Carga de datos', studio:'Personalizaciones Studio', golive:'Pre Go-Live', support:'Soporte post Go-Live' };
+  const modes  = { chat:'asistente general Odoo', studio:'experto en Odoo Studio (campos, vistas, automatizaciones, modelos, webhooks)', config:'consultor de configuración Odoo', debug:'experto en depuración de errores Odoo', manual:'redactor de manuales de usuario Odoo', doc:'generador de documentación técnica de proyectos Odoo' };
+
+  const sys = `Eres el mejor experto mundial en Odoo, actuando como ${modes[A.mode]||modes.chat}.
+
+PROYECTO ACTIVO:
+- Cliente: ${ctx.client||'DevStudios'} ${ctx.sector?'('+ctx.sector+')':''}
+- Odoo: ${ctx.ver} Online (odoo.com)
+- Fase: ${phases[ctx.phase]||ctx.phase}
+- Conexión: ${A.odoo.connected?'ACTIVA en '+A.odoo.url:'NO conectada'}
+- Notas: ${ctx.notes||'ninguna'}
+
+CAPACIDADES:
+1. DATOS: Consultar/crear/modificar/eliminar registros vía JSON-RPC. Modelos: res.partner, crm.lead, sale.order, account.move, product.template, project.task, hr.employee, res.users.
+2. STUDIO: Campos custom (naming: x_cliente_campo), vistas, automatizaciones Python, modelos nuevos, webhooks, informes QWeb. ⚠️ Requiere plan Custom/Enterprise.
+3. CONFIGURACIÓN: Checklist inicial, módulos y dependencias, permisos/grupos/Record Rules, email SMTP/SPF/DKIM, localización española (Verifactu 2.0, SII, IRPF).
+4. DEBUG: Diagnóstico y resolución de errores.
+5. MANUALES: Manuales de uso por módulo y perfil de usuario con pasos exactos.
+6. DOCUMENTACIÓN: Informes de configuración, decisiones técnicas, checklists Go-Live, documentos de entrega.
+${A.csv?'7. CSV CARGADO: '+A.csv.length+' filas. Columnas: '+Object.keys(A.csv[0]||{}).join(', '):''}
+
+NORMAS: Responde en español. Directo y técnico. Pasos numerados. ⚠️ en riesgos. Rutas exactas para Studio.`;
+
+  const r = await fetch(`${PROXY_URL}/claude`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ model:'claude-sonnet-4-20250514', max_tokens:1500, system:sys,
+      messages:[...A.msgs.slice(-14).map(m=>({role:m.role,content:m.content})),{role:'user',content:userMsg}] })
+  });
+  const d = await r.json();
+  if (d.error) throw new Error(d.error.message);
+  return d.content?.[0]?.text || 'Error al procesar.';
+}
+
+// ── CHAT ──────────────────────────────────────────────────────────────────────
+async function send() {
+  const inp = document.getElementById('inp');
+  const text = inp.value.trim();
+  if (!text || A.loading) return;
+  hideWS(); inp.value=''; inp.style.height='42px';
+  addMsg('user', text); A.msgs.push({ role:'user', content:text });
+  const t = addTyping(); A.loading=true; document.getElementById('sbtn').disabled=true;
+  try {
+    const r = await askClaude(text);
+    t.remove(); addMsg('assistant', r); A.msgs.push({ role:'assistant', content:r });
+    const mtype = A.mode==='studio'?'studio':A.mode==='config'?'config':A.mode==='manual'?'config':A.mode==='doc'?'config':'query';
+    addHist(mtype, text.substring(0,55)+(text.length>55?'...':''), 'Respuesta generada', 'ok');
+    if (A.mode==='manual') { A.lastManual=r; }
+    if (A.mode==='doc') { A.lastDoc=r; }
+  } catch(e) {
+    t.remove(); addMsg('assistant', '❌ Error: '+e.message+'\n\nVerifica que la API Key de Anthropic está configurada en el archivo HTML.');
+  } finally { A.loading=false; document.getElementById('sbtn').disabled=false; }
+}
+
+function addMsg(role, content) {
+  const chat = document.getElementById('chat');
+  const d = document.createElement('div'); d.className=`msg ${role}`;
+  d.innerHTML=`<div class="mav ${role}">${role==='user'?'👤':'⬡'}</div><div class="mc"><div class="mr">${role==='user'?'Tú':'Odoo AI'}</div><div class="mb">${fmt(content)}</div></div>`;
+  chat.appendChild(d); chat.scrollTop=chat.scrollHeight; return d;
+}
+function sysMsg(c) { hideWS(); addMsg('assistant',c); A.msgs.push({role:'assistant',content:c}); }
+function addTyping() {
+  const chat=document.getElementById('chat');
+  const d=document.createElement('div'); d.className='msg assistant';
+  d.innerHTML=`<div class="mav assistant">⬡</div><div class="mc"><div class="mr">Odoo AI</div><div class="mb"><div class="typing"><div class="td2"></div><div class="td2"></div><div class="td2"></div></div></div></div>`;
+  chat.appendChild(d); chat.scrollTop=chat.scrollHeight; return d;
+}
+function fmt(t) {
+  t=t.replace(/```[\w]*\n?([\s\S]*?)```/g,'<pre>$1</pre>');
+  t=t.replace(/`([^`]+)`/g,'<code>$1</code>');
+  t=t.replace(/\*\*([^*]+)\*\*/g,'<strong>$1</strong>');
+  t=t.replace(/\n/g,'<br>');
+  return t;
+}
+function hideWS() { const w=document.getElementById('ws'); if(w) w.style.display='none'; }
+function clearAll() {
+  A.msgs=[]; A.history=[];
+  document.getElementById('chat').innerHTML=`<div class="welcome" id="ws"><div class="wt">Odoo AI Assistant</div><div class="ws2">DevStudios · Datos · Studio · Config · Manuales · Docs</div></div>`;
+  renderHistory();
+}
+
+// ── HISTORY ───────────────────────────────────────────────────────────────────
+function addHist(type, text, result, status) {
+  A.history.unshift({ type, text, result, status, time:new Date().toLocaleTimeString() });
+  renderHistory();
+}
+function renderHistory() {
+  const list = document.getElementById('historyList');
+  document.getElementById('histCount').textContent = A.history.length + ' operaciones';
+  if (!A.history.length) { list.innerHTML='<div style="font-family:var(--mono);font-size:10px;color:var(--td);text-align:center;padding:20px;">Sin operaciones.</div>'; return; }
+  list.innerHTML = A.history.map((h,i) => `
+    <div class="hitem" onclick="recallHistory(${i})">
+      <div class="hi-top"><span class="hi-type ${h.type}">${h.type.toUpperCase()}</span><span class="hi-time">${h.time}</span></div>
+      <div class="hi-text">${h.text}</div>
+      <div class="hi-result">${h.status==='ok'?'✓':'✗'} ${h.result}</div>
+    </div>`).join('');
+}
+function recallHistory(i) { document.getElementById('inp').value=A.history[i].text; switchTab('actions'); }
+function clearHistory() { A.history=[]; renderHistory(); }
+function exportHistory() {
+  const txt = A.history.map(h=>`[${h.time}] [${h.type.toUpperCase()}] ${h.text}\n→ ${h.result}`).join('\n\n');
+  dl('historial-odoo-'+Date.now()+'.txt','text/plain',txt);
+}
+
+// ── CSV ───────────────────────────────────────────────────────────────────────
+function loadCSV(e) {
+  const file=e.target.files[0]; if(!file) return;
+  const reader=new FileReader();
+  reader.onload=ev=>{
+    const lines=ev.target.result.split('\n').filter(l=>l.trim());
+    const headers=lines[0].split(',').map(h=>h.trim().replace(/"/g,''));
+    const rows=lines.slice(1).map(line=>{
+      const vals=line.split(',').map(v=>v.trim().replace(/"/g,''));
+      return Object.fromEntries(headers.map((h,i)=>[h,vals[i]||'']));
+    });
+    A.csv=rows;
+    document.getElementById('importLog').innerHTML=`<span style="color:var(--ok)">✓</span> ${file.name}<br>${rows.length} filas · ${headers.length} cols`;
+    addHist('import','CSV: '+file.name,rows.length+' filas cargadas','ok');
+    sysMsg(`📂 **${file.name}** cargado\n${rows.length} filas · Columnas: ${headers.join(', ')}\n\nSelecciona el modelo destino y haz clic en "Analizar y mapear campos".`);
+  };
+  reader.readAsText(file);
+}
+function analyzeCSV() {
+  if (!A.csv) { sysMsg('⚠️ Primero carga un archivo CSV.'); return; }
+  const model=document.getElementById('targetModel').value;
+  qa(`Analiza estas columnas del CSV y mapéalas a los campos del modelo ${model} en Odoo ${A.ctx().ver}: ${Object.keys(A.csv[0]||{}).join(', ')}. Indica: campo CSV → campo Odoo, campos obligatorios, campos a ignorar y correcciones de formato necesarias.`);
+}
+function importCSV() {
+  if (!A.csv) { sysMsg('⚠️ Primero carga un archivo CSV.'); return; }
+  const model=document.getElementById('targetModel').value;
+  qa(`Genera el código Python con XML-RPC para importar ${A.csv.length} registros al modelo ${model} de forma segura. Primera fila: ${JSON.stringify(A.csv[0])}. Incluye mapeo, validación, manejo de errores y verificación post-importación.`);
+}
+
+// ── DOCS ──────────────────────────────────────────────────────────────────────
+function genDoc(type) {
+  const types={config_report:'informe completo de configuración del proyecto',golive_checklist:'checklist de verificación pre Go-Live completo',handover:'documento de entrega al cliente con resumen de todo lo implementado'};
+  const ctx=A.ctx();
+  setMode('doc', document.querySelectorAll('.tbtn')[5]);
+  qa(`Genera un ${types[type]||type} para el cliente ${ctx.client||'DevStudios'} en Odoo ${ctx.ver}. Fase: ${ctx.phase}. Formato profesional listo para entregar.`);
+}
+
+// ── UTILS ─────────────────────────────────────────────────────────────────────
+function dl(name, type, content) {
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([content],{type}));
+  a.download=name; a.click();
+}
+function qa(text) { document.getElementById('inp').value=text; send(); }
+function hk(e) { if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();send();} }
+function ar(el) { el.style.height='42px'; el.style.height=Math.min(el.scrollHeight,110)+'px'; }
+</script>
+</body>
+</html>
